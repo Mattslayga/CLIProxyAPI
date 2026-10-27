@@ -22,12 +22,16 @@ const soonestResetShortWindowCeiling = 0.9
 // window resets first, so quota that would otherwise expire at a reset is used
 // before quota that lasts longer. Ordering, most preferred first:
 //  1. short window below soonestResetShortWindowCeiling
-//  2. a known long-window reset in the future
+//  2. no known future long-window reset
 //  3. earliest long-window reset
 //  4. highest long-window utilization
 //  5. credential ID
 //
-// It reads only the passive quota snapshot in Auth.Quota.Signals. Wrapped in
+// It reads only the passive quota snapshot in Auth.Quota.Signals, which is
+// held in memory and empty after a restart. A credential with no snapshot, or
+// whose window has rolled over, is tried first: one response records its real
+// reset, and ranking by reset then applies. Ranking it last would starve it,
+// because only a request it serves can fill the snapshot. Wrapped in
 // SessionAffinitySelector it decides cold bindings and failover rebinds only;
 // established bindings stay where they are.
 type SoonestResetSelector struct{}
@@ -72,7 +76,7 @@ func soonestResetLess(a, b soonestResetKey, idA, idB string) bool {
 		return !a.guarded
 	}
 	if a.knownReset != b.knownReset {
-		return a.knownReset
+		return !a.knownReset
 	}
 	if a.knownReset && !a.resetAt.Equal(b.resetAt) {
 		return a.resetAt.Before(b.resetAt)

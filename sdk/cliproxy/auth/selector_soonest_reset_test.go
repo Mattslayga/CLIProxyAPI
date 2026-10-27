@@ -83,19 +83,25 @@ func TestSoonestResetIgnoresExpiredShortWindow(t *testing.T) {
 	}
 }
 
-func TestSoonestResetUnknownAndExpiredSortLast(t *testing.T) {
+func TestSoonestResetProbesUnknownFirst(t *testing.T) {
 	t.Parallel()
 	now := time.Now()
-	auths := []*Auth{
-		{ID: "a-no-signals", Provider: "claude"},
-		claudeQuotaAuth("b-expired", now.Add(-time.Hour), 0.99, 0.0),
-		claudeQuotaAuth("c-known", now.Add(100*time.Hour), 0.0, 0.0),
+	known := claudeQuotaAuth("a-known", now.Add(time.Hour), 0.5, 0.0)
+	expired := claudeQuotaAuth("c-expired", now.Add(-time.Hour), 0.99, 0.0)
+	auths := []*Auth{known, {ID: "b-no-signals", Provider: "claude"}, expired}
+	if got := pickID(t, &SoonestResetSelector{}, context.Background(), "claude", cliproxyexecutor.Options{}, auths); got != "b-no-signals" {
+		t.Fatalf("picked %q, want b-no-signals (no snapshot, so probe it)", got)
 	}
-	if got := pickID(t, &SoonestResetSelector{}, context.Background(), "claude", cliproxyexecutor.Options{}, auths); got != "c-known" {
-		t.Fatalf("picked %q, want c-known", got)
+	if got := pickID(t, &SoonestResetSelector{}, context.Background(), "claude", cliproxyexecutor.Options{}, []*Auth{known, expired}); got != "c-expired" {
+		t.Fatalf("picked %q, want c-expired (window rolled over, so probe it)", got)
 	}
-	if got := pickID(t, &SoonestResetSelector{}, context.Background(), "claude", cliproxyexecutor.Options{}, auths[:2]); got != "a-no-signals" {
-		t.Fatalf("picked %q among unknowns, want a-no-signals (ID order)", got)
+	expired.Quota.Signals["Anthropic-Ratelimit-Unified-7d-Reset"] = strconv.FormatInt(now.Add(160*time.Hour).Unix(), 10)
+	if got := pickID(t, &SoonestResetSelector{}, context.Background(), "claude", cliproxyexecutor.Options{}, []*Auth{known, expired}); got != "a-known" {
+		t.Fatalf("picked %q, want a-known once both resets are known", got)
+	}
+	guarded := claudeQuotaAuth("d-guarded", now.Add(time.Hour), 0.5, 0.95)
+	if got := pickID(t, &SoonestResetSelector{}, context.Background(), "claude", cliproxyexecutor.Options{}, []*Auth{guarded, {ID: "e-no-signals"}}); got != "e-no-signals" {
+		t.Fatalf("picked %q, want e-no-signals over a 5h-guarded credential", got)
 	}
 }
 
