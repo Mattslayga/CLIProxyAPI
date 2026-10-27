@@ -75,3 +75,29 @@ func TestApplyManagerConfigStopsReplacedServiceAffinitySelector(t *testing.T) {
 		t.Fatal("expected replaced selector to be stopped during routing config apply")
 	}
 }
+
+func TestSoonestResetRoutingSelector(t *testing.T) {
+	for _, name := range []string{"soonest-reset", "SoonestReset", "sr"} {
+		state := normalizedRoutingRuntimeState(&internalconfig.Config{
+			Routing: internalconfig.RoutingConfig{Strategy: name},
+		})
+		if state.strategy != "soonest-reset" {
+			t.Fatalf("%q: strategy = %q, want soonest-reset", name, state.strategy)
+		}
+		if _, ok := newRoutingSelector(state).(*coreauth.SoonestResetSelector); !ok {
+			t.Fatalf("%q: selector type = %T, want *auth.SoonestResetSelector", name, newRoutingSelector(state))
+		}
+	}
+	affinity := normalizedRoutingRuntimeState(&internalconfig.Config{
+		Routing: internalconfig.RoutingConfig{Strategy: "soonest-reset", SessionAffinity: true},
+	})
+	if _, ok := newRoutingSelector(affinity).(*coreauth.SessionAffinitySelector); !ok {
+		t.Fatalf("selector type = %T, want *auth.SessionAffinitySelector wrapping soonest-reset", newRoutingSelector(affinity))
+	}
+	unknown := normalizedRoutingRuntimeState(&internalconfig.Config{
+		Routing: internalconfig.RoutingConfig{Strategy: "bogus"},
+	})
+	if _, ok := newRoutingSelector(unknown).(*coreauth.RoundRobinSelector); !ok {
+		t.Fatalf("unknown strategy selector = %T, want *auth.RoundRobinSelector", newRoutingSelector(unknown))
+	}
+}
