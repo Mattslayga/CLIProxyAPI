@@ -18,10 +18,11 @@ const claudeSubscriptionClientGuardBody = `{"type":"error","error":{"type":"inva
 // credential on a client that is not native Claude Code, such as Codex,
 // OpenCode or a script calling the translated routes. Native means the
 // User-Agent carries a Claude Code entrypoint the detector trusts (cli,
-// sdk-cli, sdk-ts, claude-vscode). The refusal is a 400 request fault, so the
-// credential is neither cooled down nor rotated away from.
+// sdk-cli, sdk-ts, claude-vscode), or T3's own t3-code entrypoint. The refusal
+// is a 400 request fault, so the credential is neither cooled down nor rotated away from.
 func claudeSubscriptionClientGuard(fp claudeFingerprintPolicy, detection helps.ClaudeCodeRequestDetection) error {
-	if os.Getenv(claudeSubscriptionClientGuardEnv) != "1" || !fp.AuthIsOAuthToken || detection.NativeClient {
+	nativeT3Code := detection.Entrypoint == "t3-code" && detection.UserAgent
+	if os.Getenv(claudeSubscriptionClientGuardEnv) != "1" || !fp.AuthIsOAuthToken || detection.NativeClient || nativeT3Code {
 		return nil
 	}
 	return statusErr{code: http.StatusBadRequest, msg: claudeSubscriptionClientGuardBody}

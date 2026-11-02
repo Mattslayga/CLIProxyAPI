@@ -34,6 +34,7 @@ func TestClaudeSubscriptionClientGuard(t *testing.T) {
 		{"t3 code cli", "claude-cli/2.1.316 (external, t3-code)", oauth, true},
 		{"t3 code unknown entrypoint", "claude-cli/2.1.316 (external, t3-code-extra)", oauth, false},
 		{"t3 without claude cli", "T3 Code", oauth, false},
+		{"t3 with malformed claude version", "claude-cli/not-a-version (external, t3-code)", oauth, false},
 		{"claude -p", "claude-cli/2.1.310 (external, sdk-cli)", oauth, true},
 		{"interactive cli", "claude-cli/2.1.310 (external, cli)", oauth, true},
 		{"vscode", "claude-cli/2.1.310 (external, claude-vscode)", oauth, true},
