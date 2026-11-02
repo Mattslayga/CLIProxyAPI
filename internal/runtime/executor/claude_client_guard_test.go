@@ -30,6 +30,10 @@ func TestClaudeSubscriptionClientGuard(t *testing.T) {
 		allowed   bool
 	}{
 		{"t3 agent sdk", "claude-cli/2.1.310 (external, sdk-ts, agent-sdk/0.3.10)", oauth, true},
+		{"t3 code agent sdk", "claude-cli/2.1.316 (external, t3-code, agent-sdk/0.3.276)", oauth, true},
+		{"t3 code cli", "claude-cli/2.1.316 (external, t3-code)", oauth, true},
+		{"t3 code unknown entrypoint", "claude-cli/2.1.316 (external, t3-code-extra)", oauth, false},
+		{"t3 without claude cli", "T3 Code", oauth, false},
 		{"claude -p", "claude-cli/2.1.310 (external, sdk-cli)", oauth, true},
 		{"interactive cli", "claude-cli/2.1.310 (external, cli)", oauth, true},
 		{"vscode", "claude-cli/2.1.310 (external, claude-vscode)", oauth, true},
