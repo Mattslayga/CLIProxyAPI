@@ -49,7 +49,7 @@ func TestClaudeExecutorT3ClientGuard(t *testing.T) {
 				payload := []byte(`{"model":"claude-sonnet-5","max_tokens":8,"messages":[{"role":"user","content":"Reply ok"}],"metadata":{"user_id":"` + strings.ReplaceAll(claudeNativeHelperUserID, `"`, `\"`) + `"}}`)
 				headers := claudeNativeHelperHeaders("claude-code-20250219,oauth-2025-04-20", "gzip, deflate, br, zstd")
 				headers.Set("User-Agent", client.userAgent)
-				executor := NewClaudeExecutor(&config.Config{})
+				executor := NewClaudeExecutor(&config.Config{DisableClaudeCloakMode: true})
 				auth := claudeNativeHelperOAuthAuth(server.URL)
 				request := cliproxyexecutor.Request{Model: "claude-sonnet-5", Payload: payload}
 				options := cliproxyexecutor.Options{SourceFormat: sdktranslator.FormatClaude, OriginalRequest: payload, Headers: headers}
